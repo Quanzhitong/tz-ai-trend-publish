@@ -112,7 +112,7 @@ export class XunfeiLLM implements LLMProvider {
           }),
           timeout: 60000, // 60秒超时
           retries: 3, // 最多重试3次
-          retryDelay: 1000, // 重试间隔1秒
+          retryDelay: 10000, // 重试间隔1秒
         },
       );
 

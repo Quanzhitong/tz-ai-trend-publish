@@ -4,6 +4,7 @@
     "jsr:@deno-library/progress@*": "1.5.1",
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@sapling/markdown@*": "0.3.0",
+    "jsr:@std/assert@*": "1.0.13",
     "jsr:@std/assert@1": "1.0.13",
     "jsr:@std/fmt@1": "1.0.6",
     "jsr:@std/fmt@1.0.3": "1.0.3",

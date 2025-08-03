@@ -60,7 +60,6 @@ export const getDataSources = async (): Promise<SourceConfig> => {
         }
       });
     }
-
     return mergedSources;
   } catch (error) {
     console.error("Failed to get data sources from database:", error);

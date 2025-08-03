@@ -98,7 +98,8 @@ export class LLMFactory {
 
     // 根据类型创建对应的LLM提供者
     let provider: LLMProvider;
-
+    console.log(config, 'config');
+    
     switch (config.providerType) {
       case "OPENAI":
         provider = new OpenAICompatibleLLM("OPENAI_", undefined, config.model);

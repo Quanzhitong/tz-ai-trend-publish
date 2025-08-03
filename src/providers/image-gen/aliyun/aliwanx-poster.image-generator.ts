@@ -81,7 +81,8 @@ export class AliyunWanxPosterGenerator extends BaseAliyunImageGenerator {
         },
         parameters: {},
       });
-
+      console.log(taskResponse, '===taskResponse==');
+      
       // 等待任务完成
       return await this.waitForCompletion(taskResponse.output.task_id);
     } catch (error: any) {

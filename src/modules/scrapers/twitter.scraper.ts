@@ -37,20 +37,21 @@ export class TwitterScraper implements ContentScraper {
     }
 
     const username = usernameMatch[1];
+    
     logger.debug(`Processing Twitter user: ${username}`);
 
     try {
-      const query = `from:${username} -filter:replies within_time:24h`;
-      const apiUrl =
-        `https://api.twitterapi.io/twitter/tweet/advanced_search?query=${
-          encodeURIComponent(
-            query,
-          )
-        }&queryType=Top`;
-
+        const query = `from:${username} -filter:replies within_time:24h`;
+        const apiUrl =
+          `https://api.twitterapi.io/twitter/tweet/advanced_search?query=${
+            encodeURIComponent(
+              query,
+            )
+          }&queryType=Top`;
+        
       const response = await fetch(apiUrl, {
         headers: {
-          "X-API-Key": `${this.xApiBearerToken}`,
+          "x-api-key": `${this.xApiBearerToken}`,
         },
       });
 

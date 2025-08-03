@@ -81,7 +81,7 @@ export class HttpClient {
     url: string,
     options: RequestOptions = {},
   ): Promise<Response> {
-    const { retries = 3, retryDelay = 1000, ...fetchOptions } = options;
+    const { retries = 3, retryDelay = 10000, ...fetchOptions } = options;
 
     let lastError: HttpError | null = null;
 
