@@ -15,6 +15,7 @@ logger.info("DB_USER", process.env.DB_USER);
 logger.info("DB_PASSWORD", process.env.DB_PASSWORD);
 logger.info("DB_DATABASE", process.env.DB_DATABASE);
 
+// 1. 创建 MySQL 连接
 const poolConnection = mysql.createPool({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
@@ -28,6 +29,7 @@ const poolConnection = mysql.createPool({
   keepAliveInitialDelay: 0,
 });
 
+// 核心函数 drizzle：接收数据库连接，返回 Drizzle 客户端对象
 const db = drizzle(poolConnection, {
   mode: "default",
   schema: {

@@ -43,42 +43,76 @@ export function getWorkflow(type: WorkflowType): WorkflowEntrypoint {
 
 export const startCronJobs = () => {
   const barkNotifier = new BarkNotifier();
-  barkNotifier.notify("定时任务启动", "定时任务启动");
+  barkNotifier.notify("标题：定时任务启动", "内容：定时任务启动了");
   logger.info("初始化定时任务...");
 
   // 每天凌晨3点执行
-  cron.schedule(
-    "0 3 * * *",
-    async () => {
-      const dayOfWeek = new Date().getDay(); // 0是周日，1-6是周一到周六
-      const adjustedDay = dayOfWeek === 0
-        ? 7
-        : dayOfWeek as 1 | 2 | 3 | 4 | 5 | 6 | 7; // 将周日的0转换为7
+  // cron.schedule(
+  //   "0 3 * * *",
+  //   async () => {
+  //     const dayOfWeek = new Date().getDay(); // 0是周日，1-6是周一到周六
+  //     const adjustedDay = dayOfWeek === 0
+  //       ? 7
+  //       : dayOfWeek as 1 | 2 | 3 | 4 | 5 | 6 | 7; // 将周日的0转换为7
 
-      try {
-        const workflowConfigService = WorkflowConfigService.getInstance();
-        const workflowType = await workflowConfigService.getDailyWorkflow(
-          adjustedDay,
-        );
+  //     try {
+  //       const workflowConfigService = WorkflowConfigService.getInstance();
+  //       const workflowType = await workflowConfigService.getDailyWorkflow(
+  //         adjustedDay,
+  //       );
+  //       console.log("workflowType", workflowType);
+        
+  //       if (workflowType) {
+  //         logger.info(`开始执行周${adjustedDay}的工作流: ${workflowType}...`);
+  //         const workflow = getWorkflow(workflowType);
+  //         await workflow.execute({
+  //           payload: {},
+  //           id: "cron-job",
+  //           timestamp: Date.now(),
+  //         });
+  //       } else {
+  //         logger.info(`周${adjustedDay}没有配置对应的工作流`);
+  //       }
+  //     } catch (error) {
+  //       logger.error(`工作流执行失败:`, error);
+  //       barkNotifier.notify("工作流执行失败", String(error));
+  //     }
+  //   },
+  //   {
+  //     timezone: "Asia/Shanghai",
+  //   },
+  // );
 
-        if (workflowType) {
-          logger.info(`开始执行周${adjustedDay}的工作流: ${workflowType}...`);
-          const workflow = getWorkflow(workflowType);
-          await workflow.execute({
-            payload: {},
-            id: "cron-job",
-            timestamp: Date.now(),
-          });
-        } else {
-          logger.info(`周${adjustedDay}没有配置对应的工作流`);
-        }
-      } catch (error) {
-        logger.error(`工作流执行失败:`, error);
-        barkNotifier.notify("工作流执行失败", String(error));
+  // 调试：立即执行一次
+  const executeImmediately = async () => {
+    const dayOfWeek = new Date().getDay(); // 0是周日，1-6是周一到周六
+    const adjustedDay = dayOfWeek === 0
+      ? 7
+      : dayOfWeek as 1 | 2 | 3 | 4 | 5 | 6 | 7; // 将周日的0转换为7
+
+    try {
+      const workflowConfigService = WorkflowConfigService.getInstance();
+      const workflowType = await workflowConfigService.getDailyWorkflow(
+        adjustedDay,
+      );
+      console.log("workflowType", workflowType);
+
+      if (workflowType) {
+        logger.info(`开始执行周${adjustedDay}的工作流: ${workflowType}...`);
+        const workflow = getWorkflow(workflowType);
+        await workflow.execute({
+          payload: {},
+          id: "manual-job",
+          timestamp: Date.now(),
+        });
+      } else {
+        logger.info(`周${adjustedDay}没有配置对应的工作流`);
       }
-    },
-    {
-      timezone: "Asia/Shanghai",
-    },
-  );
+    } catch (error) {
+      logger.error(`工作流执行失败:`, error);
+      barkNotifier.notify("工作流执行失败", String(error));
+    }
+  };
+// 调用立即执行函数
+  executeImmediately();
 };
