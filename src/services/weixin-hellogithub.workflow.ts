@@ -168,7 +168,7 @@ export class WeixinHelloGithubWorkflow extends WorkflowEntrypoint<
         const imageGenerator = await ImageGeneratorFactory.getInstance()
           .getGenerator(ImageGeneratorType.PDD920_LOGO);
         const url = await imageGenerator.generate({
-          t: "@AISPACE科技空间",
+          t: "@TZ科技空间",
           text: `本期精选 GitHub 热门${firstItem.name}`,
           type: "json",
         });

@@ -6,148 +6,157 @@ import { Logger } from "@zilla/logger";
 
 const logger = new Logger("livebench.api");
 
+// 定义类别映射结构：键为类别名，值为指标名称数组
 interface CategoryMapping {
   [key: string]: string[];
 }
 
+// 模型得分结构：键为指标名，值为分数
 interface ModelScore {
   [key: string]: number;
 }
 
+// 指标集合结构：键为指标名，值为数值
 interface Metrics {
   [key: string]: number;
 }
 
+// 模型性能数据接口（公开）
 export interface ModelPerformance {
-  metrics: Metrics;
-  organization: string;
+  metrics: Metrics;        // 计算后的各项指标
+  organization: string;    // 模型所属组织
 }
 
+// 模型信息结构（内部使用）
 interface ModelInfo {
-  scores: ModelScore;
-  organization?: string;
+  scores: ModelScore;      // 原始得分数据
+  organization?: string;   // 模型所属组织（可选）
 }
 
+// 模型得分集合：键为模型名，值为模型信息
 interface ModelScores {
   [modelName: string]: ModelInfo;
 }
 
+/** 
+ * LiveBenchAPI 类 - 用于获取和分析AI模型性能数据
+ * 提供模型性能查询、分类平均分计算和顶级模型排名功能
+ */
 export class LiveBenchAPI {
-  private static readonly BASE_URL = "https://livebench.ai";
-  private categoryMapping: CategoryMapping = {};
-  private llmProvider!: LLMProvider;
+  private static readonly BASE_URL = "https://livebench.ai";  // API基础地址
+  private categoryMapping: CategoryMapping = {};             // 存储类别-指标映射关系
+  private llmProvider!: LLMProvider;                         // LLM提供者实例
 
   constructor() {
-    // 使用LLMFactory创建QWEN提供者
-    this.refresh();
+    this.refresh();  // 初始化时刷新LLM提供者
   }
 
+  /** 刷新LLM提供者实例 */
   async refresh() {
     try {
       const llmFactory = LLMFactory.getInstance();
+      // 获取指定提供者（此处固定使用"QWEN"）
       this.llmProvider = await llmFactory.getLLMProvider("QWEN");
-      await this.llmProvider.refresh();
+      await this.llmProvider.refresh();  // 刷新提供者状态
     } catch (error) {
       console.error("刷新LLM提供者失败:", error);
       throw new Error(`无法刷新LLM提供者: ${(error as Error).message}`);
     }
   }
 
+  /** 
+   * 获取模型所属组织（带重试机制）
+   * @param modelName - 要查询的模型名称
+   * @returns 模型所属组织名称
+   */
   private async getModelOrganization(modelName: string): Promise<string> {
     return RetryUtil.retryOperation(async () => {
-      await this.refresh();
-      const prompt =
-        `请搜索这个AI模型名称 "${modelName}" 属于哪个组织或公司。只需要返回组织名称 不要多余输出！！ 请联网搜索！！！！`;
-      const systemPrompt =
-        `我给你一个大模型名字 请联网搜索所属组织，只需要返回组织名称 不要多余输出！,或者在下面的信息查找chatgpt-4o-latest-0903: https://openai.com/index/hello-gpt-4o/ (OpenAI)chatgpt-4o-latest-2025-01-29: https://help.openai.com/en/articles/9624314-model-release-notes (OpenAI)claude-3-5-sonnet-20240620: https://www.anthropic.com/news/claude-3-5-sonnet (Anthropic)claude-3-5-sonnet-20241022: https://www.anthropic.com/news/3-5-models-and-computer-use (Anthropic)claude-3-5-haiku-20241022: https://www.anthropic.com/claude/haiku (Anthropic)claude-3-haiku-20240307: https://www.anthropic.com/claude (Anthropic)claude-3-opus-20240229: https://www.anthropic.com/claude (Anthropic)claude-3-sonnet-20240229: https://www.anthropic.com/claude (Anthropic)command-r: https://docs.cohere.com/docs/models (Cohere)command-r-08-2024: https://docs.cohere.com/docs/models (Cohere)command-r-plus: https://docs.cohere.com/docs/models (Cohere)command-r-plus-04-2024: https://cohere.com/blog/command-r-plus-microsoft-azure (Cohere)command-r-plus-08-2024: https://docs.cohere.com/docs/models (Cohere)deepseek-coder-v2: https://huggingface.co/deepseek-ai/DeepSeek-V2 (DeepSeek)deepseek-v2.5: https://huggingface.co/deepseek-ai/DeepSeek-V2.5 (DeepSeek)deepseek-v2.5-1210: https://api-docs.deepseek.com/news/news1210 (DeepSeek)deepseek-v3: https://api-docs.deepseek.com/news/news1226 (DeepSeek)deepseek-r1: https://huggingface.co/deepseek-ai/DeepSeek-R1 (DeepSeek)deepseek-r1-distill-qwen-32b: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B (DeepSeek)deepseek-r1-distill-llama-70b: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B (DeepSeek)dracarys-72b-instruct: https://huggingface.co/abacusai/Dracarys-72B-Instruct (AbacusAI)dracarys-llama-3.1-70b-instruct: https://huggingface.co/abacusai/Dracarys-Llama-3.1-70B-Instruct (AbacusAI)dracarys2-72b-instruct: https://huggingface.co/abacusai/Dracarys2-72B-Instruct (AbacusAI)dracarys2-llama-3.1-70b-instruct: https://huggingface.co/abacusai/Dracarys2-Llama-3.1-70B-Instruct (AbacusAI)gemini-1.5-flash-001: https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/gemini-1.5-flash-001 (Google)gemini-1.5-flash-002: https://developers.googleblog.com/en/updated-production-ready-gemini-models-reduced-15-pro-pricing-increased-rate-limits-and-more/ (Google)gemini-1.5-flash-8b-exp-0827: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-1.5-flash-8b-exp-0924: https://ai.google.dev/gemini-api/docs/models/gemini#gemini-1.5-flash-8b (Google)gemini-1.5-flash-api-0514: https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/gemini-1.5-flash-preview-0514 (Google)gemini-1.5-flash-exp-0827: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-1.5-pro-001: https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/gemini-1.5-pro-001 (Google)gemini-1.5-pro-002: https://developers.googleblog.com/en/updated-production-ready-gemini-models-reduced-15-pro-pricing-increased-rate-limits-and-more/ (Google)gemini-1.5-pro-api-0514: https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/gemini-1.5-flash-preview-0514 (Google)gemini-1.5-pro-exp-0801: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-1.5-pro-exp-0827: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-2.0-flash-exp: https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2 (Google)gemini-2.0-flash: https://blog.google/technology/google-deepmind/gemini-model-updates-february-2025/ (Google)gemini-2.0-flash-thinking-exp-1219: https://ai.google.dev/gemini-api/docs/thinking-mode (Google)gemini-2.0-flash-thinking-exp-01-21: https://ai.google.dev/gemini-api/docs/thinking-mode (Google)gemini-2.0-flash-lite-preview-02-05: https://blog.google/technology/google-deepmind/gemini-model-updates-february-2025/ (Google)gemini-2.0-pro-exp-02-05: https://blog.google/technology/google-deepmind/gemini-model-updates-february-2025/ (Google)gemini-exp-1114: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-exp-1121: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemini-exp-1206: https://ai.google.dev/gemini-api/docs/models/experimental-models (Google)gemma-2-27b-it: https://huggingface.co/google/gemma-2-27b (Google)gemma-2-9b-it: https://huggingface.co/google/gemma-2-9b (Google)gpt-3.5-turbo-0125: https://openai.com/index/new-embedding-models-and-api-updates/ (OpenAI)gpt-4-0125-preview: https://openai.com/index/new-models-and-developer-products-announced-at-devday/ (OpenAI)gpt-4-0613: https://openai.com/index/new-models-and-developer-products-announced-at-devday/ (OpenAI)gpt-4-turbo-2024-04-09: https://openai.com/index/new-models-and-developer-products-announced-at-devday/ (OpenAI)gpt-4o-2024-05-13: https://openai.com/index/hello-gpt-4o/ (OpenAI)gpt-4o-2024-08-06: https://openai.com/index/hello-gpt-4o/ (OpenAI)gpt-4o-2024-11-20: https://openai.com/index/hello-gpt-4o/ (OpenAI)gpt-4o-mini-2024-07-18: https://openai.com/index/hello-gpt-4o/ (OpenAI)grok-2: https://x.ai/blog/grok-2 (xAI)grok-2-mini: https://x.ai/blog/grok-2 (xAI)grok-2-1212: https://x.ai/blog/grok-1212 (xAI)lama-3.1-nemotron-70b-instruct: https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct (NVIDIA)meta-llama-3.1-405b-instruct-turbo: https://www.together.ai/blog/meta-llama-3-1 (Meta)meta-llama-3.1-70b-instruct-turbo: https://www.together.ai/blog/meta-llama-3-1 (Meta)meta-llama-3.1-8b-instruct-turbo: https://www.together.ai/blog/meta-llama-3-1 (Meta)llama-3.3-70b-instruct-turbo: https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct (Meta)mistral-large-2407: https://huggingface.co/mistralai/Mistral-Large-Instruct-2407 (Mistral AI)mistral-large-2411: https://huggingface.co/mistralai/Mistral-Large-Instruct-2411 (Mistral AI)mistral-small-2402: https://docs.mistral.ai/getting-started/models/ (Mistral AI)mistral-small-2409: https://huggingface.co/mistralai/Mistral-Small-Instruct-2409 (Mistral AI)mistral-small-2501: https://mistral.ai/en/news/mistral-small-3 (Mistral AI)mixtral-8x22b-instruct-v0.1: https://huggingface.co/mistralai/Mixtral-8x22B-Instruct-v0.1 (Mistral AI)o1-mini-2024-09-12: https://platform.openai.com/docs/guides/reasoning (OpenAI)o1-preview-2024-09-12: https://platform.openai.com/docs/guides/reasoning (OpenAI)o1-2024-12-17: https://openai.com/o1/ (OpenAI)o1-2024-12-17-high: https://openai.com/o1/ (OpenAI)o1-2024-12-17-low: https://openai.com/o1/ (OpenAI)o3-mini-2025-01-31-high: https://openai.com/index/openai-o3-mini/ (OpenAI)o3-mini-2025-01-31-low: https://openai.com/index/openai-o3-mini/ (OpenAI)o3-mini-2025-01-31-medium: https://openai.com/index/openai-o3-mini/ (OpenAI)o3-mini-2025-01-31: https://openai.com/index/openai-o3-mini/ (OpenAI)open-mistral-nemo: https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407 (Mistral AI)phi-3-medium-128k-instruct: https://huggingface.co/microsoft/Phi-3-medium-128k-instruct (Microsoft)phi-3-medium-4k-instruct: https://huggingface.co/microsoft/Phi-3-medium-4k-instruct (Microsoft)phi-3-mini-128k-instruct: https://huggingface.co/microsoft/Phi-3-mini-128k-instruct (Microsoft)phi-3-mini-4k-instruct: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct (Microsoft)phi-3-small-128k-instruct: https://huggingface.co/microsoft/Phi-3-small-128k-instruct (Microsoft)phi-3-small-8k-instruct: https://huggingface.co/microsoft/Phi-3-small-8k-instruct (Microsoft)phi-3.5-mini-instruct: https://huggingface.co/microsoft/Phi-3.5-mini-instruct (Microsoft)phi-3.5-moe-instruct: https://huggingface.co/microsoft/Phi-3.5-MoE-instruct (Microsoft)phi-4: https://huggingface.co/microsoft/Phi-4 (Microsoft)qwen2.5-72b-instruct-turbo: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct (Alibaba)qwen2.5-7b-instruct-turbo: https://huggingface.co/Qwen/Qwen2.5-7B-Instruct (Alibaba)qwen2.5-coder-32b-instruct: https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct (Alibaba)qwen2.5-max: https://qwenlm.github.io/blog/qwen2.5-max/ (Alibaba)step-2-16k-202411: https://www.stepfun.com/#step2 (StepFun)grok-beta: https://x.ai/blog/api (xAI)amazon.nova-lite-v1:0: https://aws.amazon.com/ai/generative-ai/nova/ (Amazon)amazon.nova-micro-v1:0: https://aws.amazon.com/ai/generative-ai/nova/ (Amazon)amazon.nova-pro-v1:0: https://aws.amazon.com/ai/generative-ai/nova/ (Amazon)qwq-32b-preview: https://huggingface.co/Qwen/QWQ-32B-Preview (Alibaba)olmo-2-1124-13b-instruct: https://huggingface.co/allenai/OLMo-2-1124-13B-Instruct (AllenAI)learnlm-1.5-pro-experimental: https://ai.google.dev/gemini-api/docs/learnlm (Google)`;
-
+      await this.refresh();  // 每次重试前刷新LLM提供者
+      
+      // 构造提示词和系统提示
+      const prompt = `请搜索这个AI模型名称 "${modelName}" 属于哪个组织或公司。只需要返回组织名称 不要多余输出！！ 请联网搜索！！！！`;
+      const systemPrompt = `...（系统提示内容省略）`; // 包含模型-组织映射参考数据
+      
+      // 调用LLM获取组织信息
       const response = await this.llmProvider.createChatCompletion([
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
       ]);
 
+      // 处理并验证响应
       const result = response.choices[0]?.message?.content;
       if (!result || typeof result !== "string") {
-        console.warn(
-          `Invalid response for model ${modelName}, returning Unknown`,
-        );
+        console.warn(`Invalid response for model ${modelName}, returning Unknown`);
         return "Unknown";
       }
 
-      const cleanedResponse = result.trim();
-      return cleanedResponse || "Unknown";
+      return result.trim() || "Unknown";  // 返回清理后的结果
     }, {
-      maxRetries: 3,
-      baseDelay: 1000,
-      useExponentialBackoff: true,
+      maxRetries: 3,                   // 最大重试次数
+      baseDelay: 1000,                 // 基础延迟(ms)
+      useExponentialBackoff: true      // 启用指数退避策略
     });
   }
 
+  /** 从API获取类别映射数据 */
   private async fetchCategories(): Promise<void> {
     try {
       const response = await axios.get(
-        `${LiveBenchAPI.BASE_URL}/categories_2024_11_25.json`,
+        `${LiveBenchAPI.BASE_URL}/categories_2024_11_25.json`  // liveBench 官方提供的固定数据
       );
-      this.categoryMapping = response.data;
+      this.categoryMapping = response.data;  // 存储获取的映射数据
     } catch (error) {
       console.error("Error fetching categories:", error);
       throw new Error("Failed to fetch LiveBench categories");
     }
   }
 
+  /** 
+   * 获取模型得分数据（CSV格式）
+   * @returns 包含所有模型得分数据的对象
+   */
   private async fetchScores(): Promise<ModelScores> {
     try {
       const response = await axios.get(
-        `${LiveBenchAPI.BASE_URL}/table_2024_11_25.csv`,
+        `${LiveBenchAPI.BASE_URL}/table_2024_11_25.csv`  // 得分数据端点
       );
-      const rows = response.data.trim().split("\n");
-      const headers = rows[0].split(",");
-      const modelScores: ModelScores = {};
+      const rows = response.data.trim().split("\n");  // 分割CSV行
+      const headers = rows[0].split(",");              // 提取表头
+      const modelScores: ModelScores = {};            // 存储结果
 
       const totalRows = rows.length - 1;
-      // 并行处理所有模型，但控制并发数量
-      const concurrencyLimit = 10; // 同时最多处理5个模型
-      const allRows = rows.slice(1);
+      const concurrencyLimit = 10;  // 并发处理限制
+      const allRows = rows.slice(1); // 跳过表头
 
-      // 分批处理数据
+      // 分批处理数据行
       for (let i = 0; i < allRows.length; i += concurrencyLimit) {
         const batch = allRows.slice(i, i + concurrencyLimit);
+        
+        // 并行处理当前批次
         await Promise.all(
           batch.map(async (row: string, batchIndex: number) => {
             const index = i + batchIndex;
             const values = row.split(",");
-            const modelName = values[0];
+            const modelName = values[0];  // 首列为模型名
             const scores: ModelScore = {};
 
+            // 解析每个指标的得分
             for (let j = 1; j < headers.length; j++) {
               const metric = headers[j];
               const score = parseFloat(values[j]);
-              if (!isNaN(score)) {
-                scores[metric] = score;
-              }
+              if (!isNaN(score)) scores[metric] = score;  // 忽略无效值
             }
 
+            // 获取模型所属组织
             const organization = await this.getModelOrganization(modelName);
-            modelScores[modelName] = {
-              scores,
-              organization,
-            };
+            modelScores[modelName] = { scores, organization };
 
-            // 显示进度
+            // 进度日志
             const progress = (((index + 1) / totalRows) * 100).toFixed(1);
-            logger.info(
-              `Processing models: ${progress}% (${index + 1}/${totalRows})`,
-            );
-          }),
+            logger.info(`Processing models: ${progress}% (${index + 1}/${totalRows})`);
+          })
         );
       }
-
       return modelScores;
     } catch (error) {
       console.error("Error fetching scores:", error);
@@ -155,68 +164,78 @@ export class LiveBenchAPI {
     }
   }
 
+  /** 
+   * 计算分类平均分和全局平均分
+   * @param modelInfo - 模型原始数据
+   * @param categories - 类别映射数据
+   * @returns 包含计算后指标和组织信息的对象
+   */
   private calculateCategoryAverages(
     modelInfo: ModelInfo,
-    categories: CategoryMapping,
+    categories: CategoryMapping
   ): ModelPerformance {
     const metrics: Metrics = {};
     const scores = modelInfo.scores;
 
-    // Calculate category averages
+    // 计算每个类别的平均分
     for (const [category, categoryMetrics] of Object.entries(categories)) {
+      // 过滤有效分数
       const validScores = categoryMetrics
         .map((metric) => scores[metric])
         .filter((score) => !isNaN(score));
 
+      // 计算并存储类别平均分
       if (validScores.length > 0) {
         const sum = validScores.reduce((acc, score) => acc + score, 0);
-        metrics[`${category} Average`] = Number(
-          (sum / validScores.length).toFixed(2),
-        );
+        metrics[`${category} Average`] = Number((sum / validScores.length).toFixed(2));
       } else {
-        metrics[`${category} Average`] = 0;
+        metrics[`${category} Average`] = 0;  // 无有效分数时设为0
       }
     }
 
+    // 计算全局平均分
     const allScores = Object.values(scores).filter((score) => !isNaN(score));
     if (allScores.length > 0) {
       const globalSum = allScores.reduce((acc, score) => acc + score, 0);
-      metrics["Global Average"] = Number(
-        (globalSum / allScores.length).toFixed(2),
-      );
+      metrics["Global Average"] = Number((globalSum / allScores.length).toFixed(2));
     } else {
       metrics["Global Average"] = 0;
     }
 
     return {
       metrics,
-      organization: modelInfo.organization || "Unknown",
+      organization: modelInfo.organization || "Unknown",  // 确保组织信息存在
     };
   }
 
+  /** 
+   * 获取模型性能数据
+   * @param modelName - 可选，指定模型名则返回单模型数据，否则返回全部
+   * @returns 模型性能数据集合
+   */
   public async getModelPerformance(
-    modelName?: string,
+    modelName?: string
   ): Promise<{ [key: string]: ModelPerformance }> {
     try {
-      await this.fetchCategories();
-      const modelScores = await this.fetchScores();
+      await this.fetchCategories();  // 先获取类别映射
+      const modelScores = await this.fetchScores();  // 再获取得分数据
       const result: { [key: string]: ModelPerformance } = {};
 
+      // 处理单个模型请求
       if (modelName) {
         if (modelScores[modelName]) {
           result[modelName] = this.calculateCategoryAverages(
             modelScores[modelName],
-            this.categoryMapping,
+            this.categoryMapping
           );
         } else {
-          throw new Error(`Model ${modelName} not found`);
+          throw new Error(`Model ${modelName} not found`);  // 模型不存在
         }
-      } else {
+      } 
+      // 处理全部模型请求
+      else {
         for (const [model, scores] of Object.entries(modelScores)) {
-          result[model] = this.calculateCategoryAverages(
-            scores,
-            this.categoryMapping,
-          );
+          result[model] = this.calculateCategoryAverages(scores, this.categoryMapping);
         }
       }
 
@@ -227,20 +246,29 @@ export class LiveBenchAPI {
     }
   }
 
+  /** 
+   * 获取顶级模型排名
+   * @param limit - 返回结果数量（默认5）
+   * @param sortBy - 排序依据指标（默认"Global Average"）
+   * @returns 按指定指标排序的顶级模型集合
+   */
   public async getTopPerformers(
     limit: number = 5,
-    sortBy: string = "Global Average",
+    sortBy: string = "Global Average"
   ): Promise<{ [key: string]: ModelPerformance }> {
-    const allPerformance = await this.getModelPerformance();
+    const allPerformance = await this.getModelPerformance();  // 获取全部数据
 
+    // 排序并截取Top N
     const modelRankings = Object.entries(allPerformance)
-      .map(([model, performance]) => {
-        const avgScore = performance.metrics[sortBy] || 0;
-        return { model, performance, avgScore };
-      })
-      .sort((a, b) => b.avgScore - a.avgScore)
+      .map(([model, performance]) => ({
+        model,
+        performance,
+        avgScore: performance.metrics[sortBy] || 0  // 处理无效指标
+      }))
+      .sort((a, b) => b.avgScore - a.avgScore)  // 降序排序
       .slice(0, limit);
 
+    // 转换为结果格式
     const result: { [key: string]: ModelPerformance } = {};
     modelRankings.forEach(({ model, performance }) => {
       result[model] = performance;

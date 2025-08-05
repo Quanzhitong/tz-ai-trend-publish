@@ -53,7 +53,7 @@ export class WeixinAIBenchWorkflow extends WorkflowEntrypoint<
     const imageGenerator = await ImageGeneratorFactory.getInstance()
       .getGenerator(ImageGeneratorType.PDD920_LOGO);
     const imageResult = await imageGenerator.generate({
-      t: "@AISPACE科技空间",
+      t: "@TZ科技空间",
       text: title,
       type: "json",
     });

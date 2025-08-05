@@ -33,7 +33,8 @@ export class PDD920LogoGenerator extends BaseImageGenerator {
         params.append("type", options.type);
       }
       const url = `${PDD920LogoGenerator.BASE_URL}?${params.toString()}`;
-
+      console.log(url, '=url==');
+      
       const response = await fetch(url);
 
       if (!response.ok) {
