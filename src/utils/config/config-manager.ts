@@ -37,15 +37,16 @@ export class ConfigManager {
     delayMs: 1000,    // 默认间隔1秒
   };
 
-  // 私有构造函数（强制单例）
+  // 私有构造函数，只能在当前类中使用，外部不能再实例化，严格保证全局配置唯一实例化
   private constructor() {}
 
   /**
-   * 获取单例实例
+   * 获取单例实例，用闭包实现代码会更简单
    * @returns ConfigManager唯一实例
    */
   public static getInstance(): ConfigManager {
     if (!ConfigManager.instance) {
+      // 初次实例化
       ConfigManager.instance = new ConfigManager();
     }
     return ConfigManager.instance;
@@ -84,11 +85,13 @@ export class ConfigManager {
       try {
         // 尝试从源获取配置
         const value = await source.get<T>(key);
+        // 成功立即返回
         return value;
       } catch (error) {
         lastError = error as Error;
         // 非最后一次尝试时等待
         if (attempt < options.maxAttempts) {
+          // await 关键字确保延迟操作完成后再继续
           await this.delay(options.delayMs);
         }
       }
@@ -106,9 +109,6 @@ export class ConfigManager {
    */
   public async initDefaultConfigSources(): Promise<void> {
     // 1. 添加环境变量源（默认存在）
-    const env = new EnvConfigSource();
-    console.log(env.get('DEFAULT_LLM_PROVIDER'), '===env-==');
-    
     this.addSource(new EnvConfigSource());
     
     // 2. 动态添加数据库源（如果启用）
@@ -120,7 +120,7 @@ export class ConfigManager {
 
   /**
    * 获取配置值（核心方法）
-   * @param key 配置键
+   * @param key 配置键（包括环境变量的配置和数据库配置）
    * @param retryOptions 可选重试策略
    * @returns 配置值
    * @throws {ConfigurationError} 所有源均失败时抛出

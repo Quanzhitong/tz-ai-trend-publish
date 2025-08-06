@@ -1,12 +1,9 @@
 // 导入定时任务控制器
 import { startCronJobs } from "@src/controllers/cron.ts";
-
 // 导入配置管理器（单例模式）
 import { ConfigManager } from "@src/utils/config/config-manager.ts";
-
 // 导入日志模块及其日志级别枚举
 import { Logger, LogLevel } from "@zilla/logger";
-
 // 导入服务器启动函数
 import startServer from "@src/server.ts";
 
@@ -24,7 +21,7 @@ async function bootstrap() {
   // 启动定时任务（如定时数据抓取、清理等）
   startCronJobs();
   
-  // 启动主服务器（可能是HTTP/WebSocket服务）
+  // 启动主服务器
   startServer();
 }
 
