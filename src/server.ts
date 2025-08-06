@@ -58,12 +58,13 @@ export class JSONRPCServer {
       if (!body.method) {
         throw new Error("请求缺少方法名");
       }
-
+      // 根据传入 method，获取注册的 handle，其实目前只注册了 'triggerWorkflow'这一个 method
       const handler = this.routes[body.method];
       if (!handler) {
         throw new Error(`方法 ${body.method} 不存在`);
       }
       // 请求的入参作为对应注册的workflow回调入参
+      // 请求一旦进来，执行对应工作流 article、aibench 或者 hellogithub
       const result = await handler(body.params || {});
       
       return new Response(

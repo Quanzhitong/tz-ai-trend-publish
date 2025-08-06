@@ -60,8 +60,6 @@ export const startCronJobs = () => {
   //       const workflowType = await workflowConfigService.getDailyWorkflow(
   //         adjustedDay,
   //       );
-  //       console.log("workflowType", workflowType);
-        
   //       if (workflowType) {
   //         logger.info(`开始执行周${adjustedDay}的工作流: ${workflowType}...`);
   //         const workflow = getWorkflow(workflowType);
@@ -95,8 +93,6 @@ export const startCronJobs = () => {
       const workflowType = await workflowConfigService.getDailyWorkflow(
         adjustedDay,
       );
-      console.log("workflowType", workflowType);
-
       if (workflowType) {
         logger.info(`开始执行周${adjustedDay}的工作流: ${workflowType}...`);
         const workflow = getWorkflow(workflowType);

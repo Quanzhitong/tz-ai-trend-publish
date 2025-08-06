@@ -17,7 +17,14 @@ export class WorkflowConfigService {
     }
     return WorkflowConfigService.instance;
   }
-
+/**
+ * 获取每日工作流：
+ * 周 1 、 4 、 5 、 6 、7：weixin-article-workflow
+ * 周 2：weixin-aibench-workflow
+ * 周 3：weixin-hellogithub-workflow
+ * @param dayOfWeek 
+ * @returns 
+ */
   async getDailyWorkflow(
     dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6 | 7,
   ): Promise<WorkflowType | null> {
@@ -26,6 +33,7 @@ export class WorkflowConfigService {
       // - "weixin-article-workflow"
       // - "weixin-aibench-workflow"
       // - "weixin-hellogithub-workflow"
+      // 根据 dayOfWeek 从 .env 里获取 workflowType
       const workflowType = await ConfigManager.getInstance().get<string>(
         `${dayOfWeek}_of_week_workflow`,
       ) as WorkflowType;
