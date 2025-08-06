@@ -2,7 +2,17 @@ import { triggerWorkflow } from "./controllers/workflow.controller.ts";
 import { WorkflowType } from "./controllers/cron.ts";
 import { ConfigManager } from "@src/utils/config/config-manager.ts";
 
-
+/**
+ * JSON-RPC
+ * 轻量级的远程过程调用（RPC）协议，使用 JSON（JavaScript Object Notation）格式进行数据传输。
+ * 它允许客户端通过网络调用服务器上的方法或函数，并获取执行结果。
+ * 
+ * 特点：
+ * 语言无关：任何支持 JSON 的语言都可以实现
+ * 传输无关：可在 HTTP、WebSocket、TCP 等多种协议上运行
+ * 无状态：每个请求都是独立的，不依赖会话状态
+ * 简单性：协议规范简洁，只有少数几个必需字段
+ */
 export interface JSONRPCRequest {
   jsonrpc: string;
   method: string;
@@ -40,7 +50,7 @@ export class JSONRPCServer {
       }
 
       const body = await request.json() as JSONRPCRequest;
-
+      // 协议版本，固定为 "2.0"
       if (!body.jsonrpc || body.jsonrpc !== "2.0") {
         throw new Error("无效的 JSON-RPC 请求");
       }
@@ -53,7 +63,7 @@ export class JSONRPCServer {
       if (!handler) {
         throw new Error(`方法 ${body.method} 不存在`);
       }
-
+      // 请求的入参作为对应注册的workflow回调入参
       const result = await handler(body.params || {});
       
       return new Response(
@@ -99,14 +109,22 @@ export class JSONRPCServer {
   }
 }
 
-// 创建 JSON-RPC 服务器实例
+/**
+ * 创建 JSON-RPC 服务器实例
+ * `new JSONRPCServer()` 和 `registerRoute` 的调用发生在模块加载阶段
+ * （即在 `import` 时），而不是在调用 `startServer` 函数时。
+ * 这意味着在导入 `server.ts` 模块的时候，RPC 服务器实例就已经创建好了，并且注册了路由。
+ * 路由注册(registerRoute)在启动前完成
+ * 确保服务器启动时所有路由已就绪
+ */
+
 const rpcServer = new JSONRPCServer();
 rpcServer.registerRoute("triggerWorkflow", triggerWorkflow);
 
 // 请求处理器
 const handler = async (req: Request): Promise<Response> => {
   try {
-    // 验证 Authorization 请求头
+    // 使用配置单例，安全、方便的的获取指定配置
     const configManager = ConfigManager.getInstance();
     const API_KEY = await configManager.get("SERVER_API_KEY");
 
