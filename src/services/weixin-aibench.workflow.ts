@@ -62,6 +62,7 @@ export class WeixinAIBenchWorkflow extends WorkflowEntrypoint<
     return imageResult as string;
   }
 
+  //实现父类 Workflow 的抽象run方法，在父类中执行
   async run(
     event: WorkflowEvent<WeixinAIBenchWorkflowParams>,
     step: WorkflowStep,

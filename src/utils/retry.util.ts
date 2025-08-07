@@ -115,10 +115,10 @@ export class RetryUtil {
         if (retries === maxRetries) {
           break;
         }
-
+        // 指数退避重试策略
         const delay = useExponentialBackoff
-          ? baseDelay * Math.pow(2, retries)
-          : baseDelay * (retries + 1);
+          ? baseDelay * Math.pow(2, retries) //  指数退避 基础时间 * 2^n
+          : baseDelay * (retries + 1); // 线性退避 基础时间 * （n + 1）
 
         logger.warn(
           `重试操作失败 (${retries}/${maxRetries}): ${lastError.message}`,

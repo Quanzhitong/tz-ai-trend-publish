@@ -23,6 +23,7 @@ export interface WorkflowMetric {
   error?: string;
 }
 
+// 指标收集器
 export class MetricsCollector {
   // 两层Map: workflowId -> eventId -> WorkflowMetric
   private metrics: Map<string, Map<string, WorkflowMetric>> = new Map();

@@ -38,8 +38,6 @@ export class WorkflowConfigService {
         `${dayOfWeek}_of_week_workflow`,
       ) as WorkflowType;
       return workflowType ?? WorkflowType.WeixinArticle
-        // ? WorkflowType[workflowType as keyof typeof WorkflowType]
-        // : WorkflowType.WeixinArticle;
     } catch (error) {
       console.error("获取工作流配置失败:", error);
       return WorkflowType.WeixinArticle;
